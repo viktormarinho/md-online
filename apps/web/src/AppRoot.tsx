@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { httpBatchLink, loggerLink } from "@trpc/client";
 import { useState } from "react";
 import { AppRoutes } from "./Routes";
@@ -18,6 +19,7 @@ export function AppRoot() {
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
             <QueryClientProvider client={queryClient}>
                 <AppRoutes />
+                <ReactQueryDevtools initialIsOpen={false} />
             </QueryClientProvider>
         </trpc.Provider>
     )
