@@ -5,13 +5,17 @@ import { useState } from "react";
 import { AppRoutes } from "./Routes";
 import { trpc } from "./utils/trpc";
 
+const getSession = () => {
+    return "Bearer " + sessionStorage.getItem('sessionId')
+}
+
 
 export function AppRoot() {
     const [queryClient] = useState(() => new QueryClient());
     const [trpcClient] = useState(() => trpc.createClient({
         links: [
             loggerLink(),
-            httpBatchLink({ url: 'http://localhost:3000/trpc' })
+            httpBatchLink({ url: 'http://localhost:3000/trpc', headers: () => ({ authorization: getSession() }) })
         ]
     }));
 

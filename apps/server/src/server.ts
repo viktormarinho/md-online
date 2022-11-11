@@ -4,10 +4,13 @@ import fastify from 'fastify';
 import cors from '@fastify/cors';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
+import argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
 // Separar o monte de código em arquivos diferentes, e implementar sessões.
+
+// TODO -> Lifetime das sessões
 
 // fazer uma função para adicionar 1 hora na data de agora na hora de criar sessão. a logica e tipo assim
 // Date.prototype.addHours = function(h) {
@@ -53,15 +56,82 @@ const isAuthed = t.middleware(({ next, ctx }) => {
 const protectedProcedure = t.procedure.use(isAuthed);
 
 const appRouter = t.router({
-    hello: t.procedure
+    getMessage: protectedProcedure
+        .query(({ input, ctx }) => {
+            const { user } = ctx;
+            
+            return {
+                protectedMessage: 'Hello, ' + user.username + '!'
+            }
+        }),
+    signUp: t.procedure
         .input(
             z.object({
-                name: z.string()
+                username: z.string().max(25, 'Please type in a username with less than 25 characters'),
+                email: z.string().email('Please provide a valid email'),
+                password: z.string().min(6, 'Please type in a password at least 6 characters long')
             })
         )
-        .query(({ input }) => {
-            return `Hello, ${input.name}! How are you?`
+        .mutation(async ({ input, ctx }) => {
+            const { prisma } = ctx;
+            const { username, email } = input;
+
+            const user = await prisma.user.create({
+                data: {
+                    username,
+                    email,
+                    password: await argon2.hash(input.password)
+                }
+            })
+
+            const session = await prisma.session.create({
+                data: {
+                    userId: user.id
+                }
+            })
+
+            return { session };
+        }),
+    login: t.procedure
+        .input(
+            z.object({
+                username: z.string().optional(),
+                email: z.string().optional(),
+                password: z.string()
+            })
+        )
+        .mutation(async ({ input, ctx }) => {
+            const { prisma } = ctx;
+            const { username, email, password } = input;
+
+            const user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { email },
+                        { username }
+                    ]
+                }
+            })
+
+            if (!user) {
+                throw new TRPCError({ code: 'NOT_FOUND' })
+            }
+
+            const ok = await argon2.verify(user.password, password);
+
+            if (!ok) {
+                throw new TRPCError({ code: 'UNAUTHORIZED' })
+            }
+
+            const session = await prisma.session.create({
+                data: {
+                    userId: user.id
+                }
+            })
+            
+            return { session };
         })
+
 })
 
 export type AppRouter = typeof appRouter;
