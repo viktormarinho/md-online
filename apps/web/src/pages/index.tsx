@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import { Doclist } from "../components/Doclist";
 import { Spinner } from "../components/Spinner";
 import { User, useSession } from "../utils/session";
-import 'react-toastify/dist/ReactToastify.css';
 import { trpc } from "../utils/trpc";
 
 
@@ -28,9 +27,9 @@ function DocsPage({ user }: { user: User | undefined}) {
     const navigate = useNavigate();
     const logoutMutation = trpc.endSession.useMutation({
         onSuccess: ({ msg }) => {
-            navigate('/login');
+            toast(msg, { type: 'success', position: 'top-center' });
             localStorage.removeItem('sessionId');
-            toast((msg + ' dale'), { type: 'success', position: 'top-center' });
+            navigate('/login');
         }
     })
 
@@ -40,7 +39,6 @@ function DocsPage({ user }: { user: User | undefined}) {
 
     return (
         <div>
-            <ToastContainer />
             <h1>Welcome, {user?.username} - <button onClick={logout}>Logout</button></h1>
             <Doclist />
         </div>
