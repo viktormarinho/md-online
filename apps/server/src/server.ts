@@ -8,15 +8,11 @@ import argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
-// Separar o monte de código em arquivos diferentes, e implementar sessões.
-
-// TODO -> Lifetime das sessões
-
-// fazer uma função para adicionar 1 hora na data de agora na hora de criar sessão. a logica e tipo assim
-// Date.prototype.addHours = function(h) {
-//   this.setTime(this.getTime() + (h*60*60*1000));
-//   return this;
-// }
+function dateWithExtraHours(hours: number) {
+    const date = new Date();
+    date.setTime(date.getTime() + (hours*60*60*1000));
+    return date;
+}
 
 async function createContext({ req, res }: CreateFastifyContextOptions) {
     if (req.headers.authorization) {
@@ -24,7 +20,10 @@ async function createContext({ req, res }: CreateFastifyContextOptions) {
 
         const session = await prisma.session.findFirst({
             where: {
-                id: sessionId
+                id: sessionId,
+                expiresIn: {
+                    gte: new Date()
+                }
             },
             include: {
                 user: true
@@ -84,9 +83,12 @@ const appRouter = t.router({
                 }
             })
 
+            const expiresIn = dateWithExtraHours(1);
+
             const session = await prisma.session.create({
                 data: {
-                    userId: user.id
+                    userId: user.id,
+                    expiresIn
                 }
             })
 
@@ -123,9 +125,12 @@ const appRouter = t.router({
                 throw new TRPCError({ code: 'UNAUTHORIZED' })
             }
 
+            const expiresIn = dateWithExtraHours(1);
+
             const session = await prisma.session.create({
                 data: {
-                    userId: user.id
+                    userId: user.id,
+                    expiresIn
                 }
             })
             
