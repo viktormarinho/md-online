@@ -19,6 +19,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   Session Session[]
+  docs Document[]
 }
 
 model Session {
@@ -26,4 +27,12 @@ model Session {
   user   User   @relation(fields: [userId], references: [id])
   userId String
   expiresIn DateTime
+}
+
+model Document {
+  id String @id @default(uuid())
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  title String
+  content String
 }
