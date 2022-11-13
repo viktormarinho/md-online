@@ -1,108 +1,48 @@
-import { useState } from "react";
-import { trpc } from "../utils/trpc"
+import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import { Doclist } from "../components/Doclist";
+import { Spinner } from "../components/Spinner";
+import { User, useSession } from "../utils/session";
+import 'react-toastify/dist/ReactToastify.css';
+import { trpc } from "../utils/trpc";
 
-export default function App() {
-  const util = trpc.useContext();
-  const revalidateMessage = () => {
-    util.getMessage.invalidate();
-  }
 
-  return (
-    <div>
-      <h1 className="text-3xl p-4 text-red-500 underline">Testing auth</h1>
-      
-      <SignUpForm />
-      <ProtectedMessage />
-      <button className="border border-black p-2" onClick={revalidateMessage}>Tentar puxar a mensagem de novo</button>
-      <LoginForm />
-    </div>
-  )
-}
+export default function DocsRoute() {
+    const navigate = useNavigate();
+    const { data, isLoading } = useSession({
+        onSessionNull: () => {
+            navigate('/login');
+        }
+    });
 
-function SignUpForm() {
-  const signUpMutation = trpc.signUp.useMutation({
-    onError: (error) => {
-      console.error(error)
-    },
-    onSuccess: (data) => {
-      console.log('Conta criada e sessão criada com sucesso')
-      sessionStorage.setItem('sessionId', data.session.id)
+    if (isLoading) {
+        return <div className="w-full h-full flex justify-center items-center"><Spinner /></div>
     }
-  });
-  const [signUpData, setSignUpData] = useState({
-    username: '',
-    email: '',
-    password: ''
-  })
 
-  const onChange = (e: any) => {
-    setSignUpData((prev) => ({...prev, [e.target.name]: e.target.value }))
-  }
-
-  const submit = (e: any) => {
-    e.preventDefault();
-    signUpMutation.mutate(signUpData)
-  }
-
-  return (
-    <form onSubmit={submit} className="p-4">
-      <input className="text-lg border rounded border-black" type="text" name="username" placeholder="username" onChange={onChange} value={signUpData.username}/><br /><br />
-      <input className="text-lg border rounded border-black" type="email" name="email" placeholder="email"  onChange={onChange} value={signUpData.email}/><br /><br />
-      <input className="text-lg border rounded border-black" type="password" name="password" placeholder="password"  onChange={onChange} value={signUpData.password}/><br /><br />
-      <button className="text-xl border font-bold border-green-500 rounded p-2 bg-green-500 text-white hover:text-black hover:bg-green-200 transition-all " type="submit">Criar conta</button>
-    </form>
-  )
+    return (
+        <DocsPage user={data.user}/>
+    )
 }
 
-function ProtectedMessage() {
-  const message = trpc.getMessage.useQuery();
-
-  if (message.isLoading) {
-    return <div>Loading message...</div>
-  }
-
-  if (message.isError) {
-    return <div>{message.error.message}</div>
-  }
-
-  return (
-    <div>{message.data.protectedMessage}</div>
-  )
-}
-
-function LoginForm() {
-  const loginMutation = trpc.login.useMutation({
-    onError: (data) => {
-      console.log(data.message)
-    },
-    onSuccess: (data) => {
-      sessionStorage.setItem('sessionId', data.session.id)
-      console.log('logado com sucesso!')
-    }
-  })
-  const [loginData, setLoginData] = useState({
-    emailOrUsername: '',
-    password: ''
-  })
-
-  const onChange = (e: any) => {
-    setLoginData((prev) => ({...prev, [e.target.name]: e.target.value }))
-  }
-
-  const submit = (e: any) => {
-    e.preventDefault();
-    loginMutation.mutate({
-      email: loginData.emailOrUsername,
-      username: loginData.emailOrUsername,
-      password: loginData.password
+function DocsPage({ user }: { user: User | undefined}) {
+    const navigate = useNavigate();
+    const logoutMutation = trpc.endSession.useMutation({
+        onSuccess: ({ msg }) => {
+            navigate('/login');
+            localStorage.removeItem('sessionId');
+            toast((msg + ' dale'), { type: 'success', position: 'top-center' });
+        }
     })
-  }
 
-  return (
-    <form onSubmit={submit} className="p-4">
-      <input className="text-lg border rounded border-black" type="text" name="emailOrUsername" placeholder="Email or username" onChange={onChange} value={loginData.emailOrUsername}/><br /><br />
-      <input className="text-lg border rounded border-black" type="password" name="password" placeholder="password"  onChange={onChange} value={loginData.password}/><br /><br />
-      <button className="text-xl border font-bold border-green-500 rounded p-2 bg-green-500 text-white hover:text-black hover:bg-green-200 transition-all " type="submit">Fazer login</button>
-    </form>
-  )
+    const logout = () => {
+        logoutMutation.mutate();
+    }
+
+    return (
+        <div>
+            <ToastContainer />
+            <h1>Welcome, {user?.username} - <button onClick={logout}>Logout</button></h1>
+            <Doclist />
+        </div>
+    )
 }
