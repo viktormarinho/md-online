@@ -1,143 +1,24 @@
-import { initTRPC, inferAsyncReturnType, TRPCError } from '@trpc/server';
-import { CreateFastifyContextOptions, fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
+import { initTRPC } from '@trpc/server';
+import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import fastify from 'fastify';
 import cors from '@fastify/cors';
-import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
-import argon2 from 'argon2';
-
-const prisma = new PrismaClient();
-
-function dateWithExtraHours(hours: number) {
-    const date = new Date();
-    date.setTime(date.getTime() + (hours*60*60*1000));
-    return date;
-}
-
-async function createContext({ req, res }: CreateFastifyContextOptions) {
-    if (req.headers.authorization) {
-        const sessionId = req.headers.authorization?.split(' ')[1];
-
-        const session = await prisma.session.findFirst({
-            where: {
-                id: sessionId,
-                expiresIn: {
-                    gte: new Date()
-                }
-            },
-            include: {
-                user: true
-            }
-        });
-
-        return { prisma, session }
-    }
-
-    return { prisma };
-}
-
-type Context = inferAsyncReturnType<typeof createContext>;
+import { Context, createContext } from './context';
+import { protectedProcedure, authRouter } from './routers/auth';
 
 const t = initTRPC.context<Context>().create();
 
-const isAuthed = t.middleware(({ next, ctx }) => {
-    if (!ctx.session) {
-        throw new TRPCError({ code: 'UNAUTHORIZED' })
-    }
-
-    return next({
-        ctx: {
-            user: ctx.session.user
-        }
-    })
-})
-
-const protectedProcedure = t.procedure.use(isAuthed);
-
-const appRouter = t.router({
+const messageRouter = t.router({
     getMessage: protectedProcedure
-        .query(({ input, ctx }) => {
+        .query(({ ctx }) => {
             const { user } = ctx;
             
             return {
                 protectedMessage: 'Hello, ' + user.username + '!'
             }
-        }),
-    signUp: t.procedure
-        .input(
-            z.object({
-                username: z.string().max(25, 'Please type in a username with less than 25 characters'),
-                email: z.string().email('Please provide a valid email'),
-                password: z.string().min(6, 'Please type in a password at least 6 characters long')
-            })
-        )
-        .mutation(async ({ input, ctx }) => {
-            const { prisma } = ctx;
-            const { username, email } = input;
-
-            const user = await prisma.user.create({
-                data: {
-                    username,
-                    email,
-                    password: await argon2.hash(input.password)
-                }
-            })
-
-            const expiresIn = dateWithExtraHours(1);
-
-            const session = await prisma.session.create({
-                data: {
-                    userId: user.id,
-                    expiresIn
-                }
-            })
-
-            return { session };
-        }),
-    login: t.procedure
-        .input(
-            z.object({
-                username: z.string().optional(),
-                email: z.string().optional(),
-                password: z.string()
-            })
-        )
-        .mutation(async ({ input, ctx }) => {
-            const { prisma } = ctx;
-            const { username, email, password } = input;
-
-            const user = await prisma.user.findFirst({
-                where: {
-                    OR: [
-                        { email },
-                        { username }
-                    ]
-                }
-            })
-
-            if (!user) {
-                throw new TRPCError({ code: 'NOT_FOUND' })
-            }
-
-            const ok = await argon2.verify(user.password, password);
-
-            if (!ok) {
-                throw new TRPCError({ code: 'UNAUTHORIZED' })
-            }
-
-            const expiresIn = dateWithExtraHours(1);
-
-            const session = await prisma.session.create({
-                data: {
-                    userId: user.id,
-                    expiresIn
-                }
-            })
-            
-            return { session };
         })
-
 })
+
+const appRouter = t.mergeRouters(messageRouter, authRouter)
 
 export type AppRouter = typeof appRouter;
 
