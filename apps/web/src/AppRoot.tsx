@@ -5,8 +5,8 @@ import { useState } from "react";
 import { AppRoutes } from "./Routes";
 import { trpc } from "./utils/trpc";
 
-const getSession = () => {
-    return "Bearer " + sessionStorage.getItem('sessionId')
+export const getSession = () => {
+    return "Bearer " + localStorage.getItem('sessionId')
 }
 
 
