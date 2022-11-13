@@ -95,5 +95,25 @@ export const authRouter = t.router({
             })
             
             return { session };
+        }),
+    validate: protectedProcedure
+        .query(async ({ ctx }) => {
+            return {
+                user: ctx.user
+            }
+        }),
+    endSession: protectedProcedure
+        .mutation(async ({ ctx }) => {
+            const { prisma, user } = ctx;
+
+            await prisma.session.deleteMany({
+                where: {
+                    userId: user.id
+                }
+            })
+
+            return {
+                msg: 'All sessions ended with success.'
+            }
         })
 })
