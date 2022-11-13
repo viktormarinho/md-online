@@ -3,22 +3,12 @@ import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import { Context, createContext } from './context';
-import { protectedProcedure, authRouter } from './routers/auth';
+import { authRouter } from './routers/auth';
+import { docsRouter } from './routers/docs';
 
 const t = initTRPC.context<Context>().create();
 
-const messageRouter = t.router({
-    getMessage: protectedProcedure
-        .query(({ ctx }) => {
-            const { user } = ctx;
-            
-            return {
-                protectedMessage: 'Hello, ' + user.username + '!'
-            }
-        })
-})
-
-const appRouter = t.mergeRouters(messageRouter, authRouter)
+const appRouter = t.mergeRouters(docsRouter, authRouter)
 
 export type AppRouter = typeof appRouter;
 
