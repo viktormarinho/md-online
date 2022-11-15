@@ -8,3 +8,32 @@
     text-sm leading-6 text-slate-900 placeholder-slate-400 rounded-md py-2 pl-2 ring-1
   ring-slate-200 shadow-sm
 }
+
+.mini-input {
+  @apply focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none w-full
+    text-sm text-slate-900 placeholder-slate-400 rounded-md pl-2 ring-1
+  ring-slate-200 shadow-sm
+}
+
+.panelOpen {
+  @apply w-[12%] flex justify-between p-2
+}
+
+.panelClosed {
+  @apply w-[1.75%] flex justify-end p-2
+}
+
+.markdown {
+  height: 90vh;
+  width: 100%;
+  padding: 8px;
+  overflow-y: scroll;
+}
+
+.markdown > * {
+  all: revert;
+}
+
+body {
+  overflow-y: hidden;
+}
