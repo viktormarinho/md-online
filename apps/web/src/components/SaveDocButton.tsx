@@ -36,13 +36,15 @@ export function SaveDocButton({ id }: { id: string }) {
     }, [saveDoc])
 
     return (
+        <>
         <button
             onClick={saveDoc}
             disabled={isSaved} 
-            className="mt-2 rounded-lg shadow-lg border py-1 px-2 disabled:opacity-60"
+            className="mt-2 rounded-lg shadow-lg text-white bg-blue-500 w-full border py-1 px-2 disabled:opacity-40"
             title="Press save or Ctrl + S"
         >
             {isSaved ? 'All changes saved' : 'Save'}
         </button>
+        </>
     )
 }
