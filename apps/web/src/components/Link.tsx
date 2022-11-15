@@ -8,7 +8,7 @@ const getMatchingRoute = (path: string) => {
     return routes.find((route) => path.match(new RegExp(route.path.replace(routeDynamicSegments, '.*')))?.[0] === path)
 }
 
-type Props = LinkProps & { prefetch: boolean }
+type Props = LinkProps & { prefetch?: boolean }
 
 export const Link = ({ children, to, prefetch = true, ...props }: Props) => {
     const ref = useRef<HTMLAnchorElement>(null)
