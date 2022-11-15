@@ -52,6 +52,10 @@ export const docsRouter = t.router({
             const doc = await prisma.document.findFirst({
                 where: {
                     id
+                },
+                include: {
+                    allowedUsers: true,
+                    user: true
                 }
             });
 
@@ -59,7 +63,9 @@ export const docsRouter = t.router({
                 throw new TRPCError({ code: 'NOT_FOUND' });
             }
 
-            if (doc.userId !== user.id) {
+            const isAllowedUser = doc.allowedUsers.map(u => u.id).includes(user.id);
+
+            if (doc.userId !== user.id && !isAllowedUser) {
                 throw new TRPCError({ code: 'FORBIDDEN' });
             }
 
@@ -86,5 +92,64 @@ export const docsRouter = t.router({
             });
 
             return { doc };
+        }),
+    addAllowedUser: protectedProcedure
+        .input(
+            z.object({
+                docId: z.string(),
+                username: z.string().optional(),
+                email: z.string().optional()
+            })
+        )
+        .mutation(async ({ ctx, input }) => {
+            const { docId, email, username } = input;
+            const { prisma, user } = ctx;
+
+            const doc = await prisma.document.findFirst({
+                where: {
+                    id: docId
+                }
+            });
+
+            if (!doc) {
+                throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+            }
+
+            if (doc.userId !== user.id) {
+                throw new TRPCError({ code: 'FORBIDDEN' });
+            }
+
+            const userToAdd = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { email },
+                        { username }
+                    ]
+                }
+            })
+
+            if (!userToAdd) {
+                throw new TRPCError({ code: 'NOT_FOUND' })
+            }
+
+            const { allowedUsers } = await prisma.document.update({
+                where: {
+                    id: docId
+                },
+                data: {
+                    allowedUsers: {
+                        connect: {
+                            id: userToAdd.id
+                        }
+                    }
+                },
+                include: {
+                    allowedUsers: true
+                }
+            })
+
+            return {
+                allowedUsers
+            }
         })
 })
