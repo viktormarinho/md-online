@@ -1,6 +1,6 @@
 import { protectedProcedure } from './auth';
 import { Context } from './../context';
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import { z } from 'zod';
 
 
@@ -35,8 +35,56 @@ export const docsRouter = t.router({
                     content: '',
                     userId: user.id
                 }
-            })
+            });
 
-            return { newDoc }
+            return { newDoc };
+        }),
+    getOneDoc: protectedProcedure
+        .input(
+            z.object({
+                id: z.string()
+            })
+        )
+        .query(async ({ input, ctx }) => {
+            const { id } = input;
+            const { user, prisma } = ctx;
+
+            const doc = await prisma.document.findFirst({
+                where: {
+                    id
+                }
+            });
+
+            if (!doc) {
+                throw new TRPCError({ code: 'NOT_FOUND' });
+            }
+
+            if (doc.userId !== user.id) {
+                throw new TRPCError({ code: 'FORBIDDEN' });
+            }
+
+            return { doc };
+        }),
+    updateDoc: protectedProcedure
+        .input(
+            z.object({
+                id: z.string(),
+                newContent: z.string()
+            })
+        )
+        .mutation(async ({ input, ctx }) => {
+            const { id, newContent } = input;
+            const { prisma } = ctx;
+
+            const doc = await prisma.document.update({
+                where: {
+                    id
+                },
+                data: {
+                    content: newContent
+                }
+            });
+
+            return { doc };
         })
 })
