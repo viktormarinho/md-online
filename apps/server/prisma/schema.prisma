@@ -19,7 +19,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   Session Session[]
-  docs Document[]
+  docs Document[] @relation(name: "owner")
+  allowedIn Document[] @relation(name: "allowed_users")
 }
 
 model Session {
@@ -31,8 +32,9 @@ model Session {
 
 model Document {
   id String @id @default(uuid())
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], name: "owner")
   userId String
   title String
   content String
+  allowedUsers User[] @relation(name: "allowed_users")
 }
