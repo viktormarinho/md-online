@@ -3,9 +3,10 @@ import { toast } from "react-toastify";
 import { User } from "../utils/session";
 import { trpc } from "../utils/trpc";
 import { Link } from "./Link";
+import { SavedStatusIndicator } from "./SavedStatusIndicator";
 
 
-export function Navbar({ user }: { user: User | undefined}) {
+export function Navbar({ user, editMode }: { user: User | undefined, editMode?: boolean }) {
     const navigate = useNavigate();
     const logoutMutation = trpc.endSession.useMutation({
         onSuccess: ({ msg }) => {
@@ -22,6 +23,7 @@ export function Navbar({ user }: { user: User | undefined}) {
     return (
         <nav className="flex justify-between p-4">
             <h1 className="text-2xl"><Link to="/">Markdown online</Link></h1>
+            {editMode && <SavedStatusIndicator />}
             <div className="flex items-center gap-8">
                 <p className="text-lg">Logged in as {user?.username}</p>
                 <button className="rounded-lg py-1 px-3 shadow-lg border hover:bg-slate-100 transition-all" onClick={logout}>Logout</button>

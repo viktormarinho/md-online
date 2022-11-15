@@ -30,7 +30,7 @@ function DocPage({ docId, user }: { docId: string, user: User }) {
 
     return (
         <div className="w-screen h-screen overflow-hiddend">
-            <Navbar user={user}/>
+            <Navbar user={user} editMode/>
             <Document id={docId} />
         </div>
     )
