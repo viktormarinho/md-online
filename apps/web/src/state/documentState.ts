@@ -1,15 +1,28 @@
 import create from "zustand";
 
-interface DocStore {
+
+type State = {
     currentDocText: string
-    updateDocText: (newText: string) => void
     isSaved: boolean
-    setIsSaved: (isSaved: boolean) => void
+    currentDocTitle: string
 }
 
-export const useDocStore = create<DocStore>((set) => ({
+type Actions = {
+    updateDocText: (newText: string) => void
+    setIsSaved: (isSaved: boolean) => void
+    setDocTitle: (newTitle: string) => void
+}
+
+const initialState: State = {
     currentDocText: '',
-    updateDocText: (newText: string) => set((state) => ({ currentDocText: newText })),
     isSaved: true,
-    setIsSaved: (isSaved: boolean) => set((state) => ({ isSaved }))
+    currentDocTitle: ''
+}
+
+export const useDocStore = create<State & Actions>((set) => ({
+    ...initialState,
+
+    updateDocText: (newText) => set((state) => ({ currentDocText: newText })),
+    setIsSaved: (isSaved) => set((state) => ({ isSaved })),
+    setDocTitle: (newTitle) => set((state) => ({ currentDocTitle: newTitle })),
 }))
