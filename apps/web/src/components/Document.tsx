@@ -1,22 +1,36 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useDocStore } from "../state/documentState";
+import { DocType } from "../utils/DocType";
 import { trpc } from "../utils/trpc"
+import { AllowedUsersList } from "./AllowedUsersList";
 import { ForbiddenDoc } from "./ForbiddenDoc";
+import { Link } from "./Link";
 import { NotFound } from "./NotFound";
 import { SaveDocButton } from "./SaveDocButton";
 import { Spinner } from "./Spinner";
 
+
 export function Document({ id }: { id: string}){
-    const doc = trpc.getOneDoc.useQuery({ id }, { refetchOnWindowFocus: false, retry: false });
-    const [text, setText] = useDocStore(state => ([state.currentDocText, state.updateDocText]));
-    const gotInitialContent = useRef(false);
-    const setIsSaved = useDocStore(state => state.setIsSaved);
+    const doc = trpc.getOneDoc.useQuery({ id }, { refetchOnWindowFocus: false, cacheTime: 0, retry: (failureCount, error) => {
+        if (error.data?.code === 'UNAUTHORIZED') return false;
+        if (error.data?.code === 'NOT_FOUND') return false;
+        return true;
+    }});
+    const { text, setIsSaved, setText, setDocTitle } = useDocStore(state => ({
+        text: state.currentDocText, 
+        setIsSaved: state.setIsSaved,
+        setText: state.updateDocText,
+        setDocTitle: state.setDocTitle
+    }));
+    const gotInitialData = useRef(false);
 
     useEffect(() => {
-        if (doc.data?.doc.content && !gotInitialContent.current) {
+        if (doc.isSuccess && !gotInitialData.current) {
+            console.log(doc.data.doc);
+            gotInitialData.current = true;
             setText(doc.data.doc.content);
-            gotInitialContent.current = true;
+            setDocTitle(doc.data.doc.title);
         }
     }, [doc])
 
@@ -34,7 +48,7 @@ export function Document({ id }: { id: string}){
 
     return (
         <div className="flex w-full">
-            <MarkdownOptionsPanel id={id} doc={doc.data?.doc} />
+            <MarkdownOptionsPanel id={id} doc={doc.data?.doc!} />
             <div className="flex h-full p-2 gap-2 w-full">
                 <textarea 
                     className="w-full h-[90vh] border shadow-lg p-2 bg-slate-50 overflow-y-scroll focus:outline-none" 
@@ -53,16 +67,21 @@ export function Document({ id }: { id: string}){
     )
 }
 
-function MarkdownOptionsPanel({ id, doc }: { id: string, doc: any }) {
+function MarkdownOptionsPanel({ id, doc }: { id: string, doc: DocType }) {
     const [isOpen, setIsOpen] = useState(true);
     
     return (
         <div className={isOpen ? 'panelOpen' : 'panelClosed'}>
-            <div className={isOpen ? 'pl-1' : 'hidden'}>
-                <h2>Document:</h2>
-                <h2 className="font-semibold">{doc.title}</h2>
-
+            <div className={isOpen ? 'px-1' : 'hidden'}>
+                <h2 className="text-lg text-center mb-4">Document options</h2>
+                <p className="text-center">Owner: <br /> {doc.user.username}</p>
                 <SaveDocButton id={id} />
+                <Link 
+                to={"/presentation/" + id}
+                className="text-center block mt-2 rounded-lg shadow-lg text-white bg-blue-500 w-full border py-1 px-2 disabled:opacity-40">
+                    Presentation mode
+                </Link>
+                <AllowedUsersList doc={doc} />
             </div>
             <div 
                 onClick={() => setIsOpen(prev => !prev)} 
