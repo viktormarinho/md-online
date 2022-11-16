@@ -27,7 +27,6 @@ export function Document({ id }: { id: string}){
 
     useEffect(() => {
         if (doc.isSuccess && !gotInitialData.current) {
-            console.log(doc.data.doc);
             gotInitialData.current = true;
             setText(doc.data.doc.content);
             setDocTitle(doc.data.doc.title);
