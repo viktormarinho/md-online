@@ -151,5 +151,43 @@ export const docsRouter = t.router({
             return {
                 allowedUsers
             }
+        }),
+    deleteDoc: protectedProcedure
+        .input(
+            z.object({
+                docId: z.string()
+            })
+        )
+        .mutation(async ({ ctx, input }) => {
+            const { prisma, user } = ctx;
+            const { docId } = input;
+
+            const doc = await prisma.document.findFirst({
+                where: {
+                    id: docId
+                }
+            });
+
+            if (!doc) {
+                throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+            }
+
+            if (doc.userId !== user.id) {
+                throw new TRPCError({ code: 'FORBIDDEN' });
+            }
+
+            await prisma.document.delete({
+                where: {
+                    id: docId
+                }
+            })
+
+            const newDocList = prisma.document.findMany({
+                where: {
+                    userId: user.id
+                }
+            })
+
+            return { newDocList };
         })
 })
