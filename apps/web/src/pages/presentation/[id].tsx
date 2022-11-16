@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { Document } from "../../components/Document";
+import { PresentationDocument } from "../../components/PresentationDocument";
 import { Navbar } from "../../components/Navbar";
 import { NotFound } from "../../components/NotFound";
 import { Spinner } from "../../components/Spinner";
@@ -23,15 +23,15 @@ export default function DocRoute() {
         return <NotFound />;
     }
 
-    return <DocPage docId={id} user={data.user!} />;
+    return <PresentationPage docId={id} user={data.user!} />;
 }
 
-function DocPage({ docId, user }: { docId: string, user: User }) {
+function PresentationPage({ docId, user }: { docId: string, user: User }) {
 
     return (
         <div className="w-screen h-screen">
-            <Navbar user={user} editMode/>
-            <Document id={docId} />
+            <Navbar user={user} />
+            <PresentationDocument id={docId} />
         </div>
     )
 }
